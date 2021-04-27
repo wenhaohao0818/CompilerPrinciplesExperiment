@@ -1,0 +1,10 @@
+#include<stdio.h>
+#define DD 22
+'\''
+int main()
+{
+    for(k=0; k<=100; ++k)
+        printf("%d\n", k);
+
+    return 0;
+}
