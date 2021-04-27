@@ -71,21 +71,15 @@ bool isTag(char p, FILE *fp)
     char ch2 = fgetc(fp);
     if (ch2 == EOF)
         return false;
-    if (p == '_')
+    if (p == '_' || isLetter(p))
     {
         fseek(fp, -1, SEEK_CUR);
         return true;
     }
-    else if (isLetter(p))
-    {
-        fseek(fp, -1, SEEK_CUR);
-        return true;
-    }
-    else
-    {
-        fseek(fp, -1, SEEK_CUR);
-        return false;
-    }
+    fseek(fp, -1, SEEK_CUR);
+    ch2 = fgetc(fp);
+    fseek(fp, -1, SEEK_CUR);
+    return false;
 }
 bool isOperator(char p, FILE *fp)
 {
@@ -125,14 +119,23 @@ bool isDelimiter(char p)
 }
 int get_ID_word(FILE *fp)
 {
+
     fseek(fp, -1, SEEK_CUR);
     char ch = fgetc(fp);
+    if (ch == '\n')
+    {
+        fseek(fp, -3, SEEK_CUR);
+        ch = fgetc(fp);
+    }
+
     string word;
     while ((isLetter(ch) || isDigit(ch) || ch == '_'))
     {
+        // cout << "ch:::" << ch << endl;
         word.append(1, ch);
         ch = fgetc(fp);
     }
+
     int i = 0;
     for (i = 0; i < 44; i++)
     {
@@ -202,16 +205,15 @@ int get_delimiter(char p)
     {
         if (p == delimiter[i])
         {
-            printf("%d:%c\n", i + 71, p);
+            cout << i + 71 << ":" << p << endl;
             return 0;
         }
     }
     return 1;
 }
 
-void delAnnotation(char ch, FILE *fp)
+void delAnnotation(char *ch, FILE *fp)
 {
-    // cout << "1fp:" << fp << endl;
     char ch2;
     ch2 = fgetc(fp);
     if (ch2 == EOF)
@@ -219,31 +221,41 @@ void delAnnotation(char ch, FILE *fp)
         fseek(fp, +1, SEEK_CUR);
         return;
     }
-    if (ch == '/' && ch2 == '/')
+    if (*ch == '/' && ch2 == '/')
     {
-        while (ch != '\n')
+        while (*ch != '\n')
         {
-            ch = fgetc(fp);
+            *ch = fgetc(fp);
         }
     }
-    else if (ch == '/' && ch2 == '*')
+    else if (*ch == '/' && ch2 == '*')
     {
-        ch = fgetc(fp);
+        *ch = fgetc(fp);
         ch2 = fgetc(fp);
-        while (!(ch == '*' && ch2 == '/'))
+        while (!(*ch == '*' && ch2 == '/'))
         {
-            ch = ch2;
+            *ch = ch2;
             ch2 = fgetc(fp);
+        }
+        *ch = fgetc(fp);
+        ch2 = fgetc(fp);
+        // cout << "1ch:" << ch << " ch2:" << ch2 << endl;
+        if (!(*ch == '*' && ch2 == '/'))
+        {
+            // cout << "else" << endl;
+            // cout << ch << " " << ch2 << endl;
+            fseek(fp, -2, SEEK_CUR);
+            *ch = fgetc(fp);
+            return;
         }
     }
     fseek(fp, -1, SEEK_CUR);
-    // cout << "2fp:" << fp << endl;
 }
 
 int main()
 {
-    // FILE *fp = fopen("in.txt", "r");
-    FILE *fp = fopen("Ex-01.cpp", "r");
+    FILE *fp = fopen("in.txt", "r");
+    // FILE *fp = fopen("Ex-01.cpp", "r");
     if (fp == NULL)
         printf("no found file!");
     char ch;
@@ -252,13 +264,13 @@ int main()
         ch = fgetc(fp);
         if (ch == EOF)
             break;
+        delAnnotation(&ch, fp); //跳过注释
         // cout << "<   " << ch << "   >" << endl;
         if (ch == '\n' || ch == ' ')
         {
             continue;
         }
-        delAnnotation(ch, fp); //跳过注释
-        if (ch == '#')         //预处理语句
+        if (ch == '#') //预处理语句
         {
             get_preprocessor_directives(fp);
         }
@@ -276,6 +288,7 @@ int main()
         }
         else if (isTag(ch, fp)) //标识符&关键字
         {
+            // cout << "in:" << ch << endl;
             get_ID_word(fp);
         }
         else if (isDelimiter(ch)) //分隔符
@@ -285,6 +298,10 @@ int main()
         else if (isOperator(ch, fp)) //运算符
         {
             get_operator(fp);
+        }
+        else
+        {
+            cout << "Unknow char:" << ch << endl;
         }
 
     } while (ch != EOF);
