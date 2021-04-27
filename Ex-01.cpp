@@ -152,22 +152,12 @@ int get_num_const(FILE *fp)
     fseek(fp, -1, SEEK_CUR);
     char ch = fgetc(fp);
     string word;
-    // char word[1024];
-    // int k = 0;
-    // word[0] = ch;
     do
     {
         word.append(1, ch);
         ch = fgetc(fp);
 
     } while (isDigit(ch));
-    // while (isDigit(ch))
-    // {
-    //     ch = fgetc(fp);
-    //     word[++k] = ch;
-    // }
-    // word[k] = '\0';
-    // printf("%s\n", word);
     cout << "99:" << word << endl;
     fseek(fp, -1, SEEK_CUR);
     return 0;
