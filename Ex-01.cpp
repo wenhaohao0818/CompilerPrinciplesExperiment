@@ -1,9 +1,9 @@
 #include <iostream>
-#include <stdio.h>
+#include <string>
+#include <vector>
 using namespace std;
-char word[1024];
-char delimiter[10] = {'(', ')', '{', '}', '[', ']', ',', ';', '.', ':'}; //delimiter
-string keyword[44] = {                                                   //keyword
+vector<char> delimiter = {'(', ')', '{', '}', '[', ']', ',', ';', '.', ':'}; //delimiter
+vector<string> keyword = {                                                   //keyword
     "auto", "break", "case", "char", "const", "continue", "default", "do", "double", "else", "enum",
     "extern", "float", "for", "goto", "if", "int", "long", "register", "return", "short", "signed",
     "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
@@ -11,9 +11,10 @@ string keyword[44] = {                                                   //keywo
     "_Static_assert", "_Noreturn", "_Thread_local", "_Generic"
 
 };
-string coper[25] = { //Operator
+vector<string> coper = { //Operator
     "+", "-", "*", "/", "%", "=", "|", "&", "^", "!", "<", ">",
-    "++", "--", "*=", "/=", "+=", "-=", "==", ">=", "<=", "!=", "%=", "||", "&&"};
+    "++", "--", "*=", "/=", "+=", "-=", "==", ">=", "<=", "!=", "%=", "||", "&&", "<<", ">>"};
+
 int get_preprocessor_directives(FILE *fp)
 {
     fseek(fp, -1, SEEK_CUR);
@@ -27,6 +28,7 @@ int get_preprocessor_directives(FILE *fp)
     cout << "pretreatment:" << word << endl;
     return 0;
 }
+
 int get_char_const(FILE *fp)
 {
     char ch;
@@ -45,6 +47,7 @@ int get_char_const(FILE *fp)
     }
     return 0;
 }
+
 int get_string_const(FILE *fp)
 {
     char ch;
@@ -58,29 +61,76 @@ int get_string_const(FILE *fp)
     cout << "98:" << word << endl;
     return 0;
 }
+
 bool isDigit(char p)
 {
     return (p >= '0' && p <= '9');
 }
-bool isLetter(char p)
+
+int get_num_const(FILE *fp)
 {
-    return (p >= 'a' && p <= 'z') || (p >= 'A' && p <= 'Z');
+    fseek(fp, -1, SEEK_CUR);
+    char ch = fgetc(fp);
+    string word;
+    do
+    {
+        word.append(1, ch);
+        ch = fgetc(fp);
+    } while (isDigit(ch));
+    cout << "99:" << word << endl;
+    fseek(fp, -1, SEEK_CUR);
+    return 0;
 }
-bool isTag(char p, FILE *fp)
+
+bool isLetter(char ch)
+{
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+bool isTag(char ch, FILE *fp)
 {
     char ch2 = fgetc(fp);
     if (ch2 == EOF)
         return false;
-    if (p == '_' || isLetter(p))
+    fseek(fp, -1, SEEK_CUR);
+    if (ch == '_' || isLetter(ch))
     {
-        fseek(fp, -1, SEEK_CUR);
         return true;
     }
-    fseek(fp, -1, SEEK_CUR);
-    ch2 = fgetc(fp);
-    fseek(fp, -1, SEEK_CUR);
     return false;
 }
+
+int get_ID_word(FILE *fp)
+{
+
+    fseek(fp, -1, SEEK_CUR);
+    char ch = fgetc(fp);
+    if (ch == '\n')
+    {
+        fseek(fp, -3, SEEK_CUR);
+        ch = fgetc(fp);
+    }
+    string word;
+    while ((isLetter(ch) || isDigit(ch) || ch == '_'))
+    {
+        word.append(1, ch);
+        ch = fgetc(fp);
+    }
+
+    int i = 0;
+    for (i = 0; i < keyword.size(); i++)
+    {
+        if (!keyword[i].compare(word))
+        {
+            cout << i + 2 << ":" << word << endl;
+            return 0;
+        }
+    }
+    cout << "1:" << word << endl;
+    fseek(fp, -1, SEEK_CUR);
+    return 0;
+}
+
 bool isOperator(char p, FILE *fp)
 {
     char ch2 = fgetc(fp);
@@ -88,7 +138,7 @@ bool isOperator(char p, FILE *fp)
     string t2(op);
     string t1(1, p);
     int i;
-    for (i = 24; i >= 12; i--)
+    for (i = coper.size() - 1; i >= 12; i--)
     {
         if (!(coper[i].compare(t2)))
         {
@@ -107,64 +157,6 @@ bool isOperator(char p, FILE *fp)
     fseek(fp, -1, SEEK_CUR);
     return false;
 }
-bool isDelimiter(char p)
-{
-    int i;
-    for (i = 0; i < 10; i++)
-    {
-        if (p == delimiter[i])
-            return true;
-    }
-    return false;
-}
-int get_ID_word(FILE *fp)
-{
-
-    fseek(fp, -1, SEEK_CUR);
-    char ch = fgetc(fp);
-    if (ch == '\n')
-    {
-        fseek(fp, -3, SEEK_CUR);
-        ch = fgetc(fp);
-    }
-
-    string word;
-    while ((isLetter(ch) || isDigit(ch) || ch == '_'))
-    {
-        // cout << "ch:::" << ch << endl;
-        word.append(1, ch);
-        ch = fgetc(fp);
-    }
-
-    int i = 0;
-    for (i = 0; i < 44; i++)
-    {
-        if (!keyword[i].compare(word))
-        {
-            cout << i + 2 << ":" << word << endl;
-            return 0;
-        }
-    }
-    cout << "1:" << word << endl;
-    fseek(fp, -1, SEEK_CUR);
-    return 0;
-}
-
-int get_num_const(FILE *fp)
-{
-    fseek(fp, -1, SEEK_CUR);
-    char ch = fgetc(fp);
-    string word;
-    do
-    {
-        word.append(1, ch);
-        ch = fgetc(fp);
-
-    } while (isDigit(ch));
-    cout << "99:" << word << endl;
-    fseek(fp, -1, SEEK_CUR);
-    return 0;
-}
 
 int get_operator(FILE *fp)
 {
@@ -174,13 +166,13 @@ int get_operator(FILE *fp)
     string t1(1, ch);
     string t2(op);
     int i;
-    for (i = 24; i >= 0; i--)
+    for (i = coper.size() - 1; i >= 0; i--)
     {
         if (i <= 11)
         {
             if (!(coper[i].compare(t1)))
             {
-                cout << i + 46 << ":" << t1 << endl;
+                cout << i + keyword.size() + 2 << ":" << t1 << endl;
                 fseek(fp, -1, SEEK_CUR);
                 return 0;
             }
@@ -189,7 +181,7 @@ int get_operator(FILE *fp)
         {
             if (!(coper[i].compare(t2)))
             {
-                cout << i + 46 << ":" << t2 << endl;
+                cout << i + keyword.size() + 2 << ":" << t2 << endl;
                 return 0;
             }
         }
@@ -198,14 +190,25 @@ int get_operator(FILE *fp)
     return 0;
 }
 
+bool isDelimiter(char p)
+{
+    int i;
+    for (i = 0; i < delimiter.size(); i++)
+    {
+        if (p == delimiter[i])
+            return true;
+    }
+    return false;
+}
+
 int get_delimiter(char p)
 {
     int i;
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < delimiter.size(); i++)
     {
         if (p == delimiter[i])
         {
-            cout << i + 71 << ":" << p << endl;
+            cout << i + coper.size() + keyword.size() + 2 << ":" << p << endl;
             return 0;
         }
     }
@@ -217,10 +220,7 @@ void delAnnotation(char *ch, FILE *fp)
     char ch2;
     ch2 = fgetc(fp);
     if (ch2 == EOF)
-    {
-        fseek(fp, +1, SEEK_CUR);
         return;
-    }
     if (*ch == '/' && ch2 == '/')
     {
         while (*ch != '\n')
@@ -228,7 +228,7 @@ void delAnnotation(char *ch, FILE *fp)
             *ch = fgetc(fp);
         }
     }
-    else if (*ch == '/' && ch2 == '*')
+    if (*ch == '/' && ch2 == '*')
     {
         *ch = fgetc(fp);
         ch2 = fgetc(fp);
@@ -239,15 +239,13 @@ void delAnnotation(char *ch, FILE *fp)
         }
         *ch = fgetc(fp);
         ch2 = fgetc(fp);
-        // cout << "1ch:" << ch << " ch2:" << ch2 << endl;
         if (!(*ch == '*' && ch2 == '/'))
         {
-            // cout << "else" << endl;
-            // cout << ch << " " << ch2 << endl;
             fseek(fp, -2, SEEK_CUR);
             *ch = fgetc(fp);
             return;
         }
+        return;
     }
     fseek(fp, -1, SEEK_CUR);
 }
@@ -258,6 +256,7 @@ int main()
     // FILE *fp = fopen("Ex-01.cpp", "r");
     if (fp == NULL)
         printf("no found file!");
+
     char ch;
     do
     {
