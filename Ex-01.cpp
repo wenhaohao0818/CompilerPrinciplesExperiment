@@ -15,7 +15,7 @@ vector<string> coper = { //Operator
     "+", "-", "*", "/", "%", "=", "|", "&", "^", "!", "<", ">",
     "++", "--", "*=", "/=", "+=", "-=", "==", ">=", "<=", "!=", "%=", "||", "&&", "<<", ">>"};
 
-int get_preprocessor_directives(FILE *fp)
+string get_preprocessor_directives(FILE *fp)
 {
     fseek(fp, -1, SEEK_CUR);
     string word;
@@ -25,11 +25,10 @@ int get_preprocessor_directives(FILE *fp)
         word.append(1, ch);
         ch = fgetc(fp);
     }
-    cout << "pretreatment:" << word << endl;
-    return 0;
+    return "pretreatment:" + word;
 }
 
-int get_char_const(FILE *fp)
+string get_char_const(FILE *fp)
 {
     char ch;
     string word;
@@ -43,12 +42,13 @@ int get_char_const(FILE *fp)
     ch = fgetc(fp);
     if (ch == '\'')
     {
-        cout << "97:" << word << endl;
+        return "97:" + word;
     }
-    return 0;
+    // '\''
+    return "getCharError";
 }
 
-int get_string_const(FILE *fp)
+string get_string_const(FILE *fp)
 {
     char ch;
     ch = fgetc(fp);
@@ -57,17 +57,21 @@ int get_string_const(FILE *fp)
     {
         word.append(1, ch);
         ch = fgetc(fp);
+        if (ch == '\n')
+            return "getStringError";
     }
-    cout << "98:" << word << endl;
-    return 0;
+    return "98:" + word;
 }
 
 bool isDigit(char p)
 {
     return (p >= '0' && p <= '9');
 }
-
-int get_num_const(FILE *fp)
+bool isLegalNum(char ch)
+{
+    return ch == '.' || ch == 'f' || ch == '-' || ch == 'x' || ch == 'b' || ch == 'L' || ch == 'l' || ch == 'e' || ch == 'u' || ch == 'a' || ch == 'A' || ch == 'b' || ch == 'B' || ch == 'C' || ch == 'c' || ch == 'D' || ch == 'd' || ch == 'e' || ch == 'E' || ch == 'F' || ch == 'f';
+}
+string get_num_const(FILE *fp)
 {
     fseek(fp, -1, SEEK_CUR);
     char ch = fgetc(fp);
@@ -76,10 +80,10 @@ int get_num_const(FILE *fp)
     {
         word.append(1, ch);
         ch = fgetc(fp);
-    } while (isDigit(ch));
-    cout << "99:" << word << endl;
+    } while (isDigit(ch) || isLegalNum(ch));
+    // cout << "99:" << word << endl;
     fseek(fp, -1, SEEK_CUR);
-    return 0;
+    return "99:" + word;
 }
 
 bool isLetter(char ch)
@@ -100,40 +104,41 @@ bool isTag(char ch, FILE *fp)
     return false;
 }
 
-int get_ID_word(FILE *fp)
+string get_ID_word(FILE *fp)
 {
 
     fseek(fp, -1, SEEK_CUR);
     char ch = fgetc(fp);
-    if (ch == '\n')
-    {
-        fseek(fp, -3, SEEK_CUR);
-        ch = fgetc(fp);
-    }
+    // if (ch == '\n')
+    // {
+    //     fseek(fp, -3, SEEK_CUR);
+    //     ch = fgetc(fp);
+    // }
     string word;
     while ((isLetter(ch) || isDigit(ch) || ch == '_'))
     {
         word.append(1, ch);
         ch = fgetc(fp);
     }
+    fseek(fp, -1, SEEK_CUR);
 
     int i = 0;
     for (i = 0; i < keyword.size(); i++)
     {
         if (!keyword[i].compare(word))
         {
-            cout << i + 2 << ":" << word << endl;
-            return 0;
+
+            return to_string(i + 2) + ":" + word;
         }
     }
-    cout << "1:" << word << endl;
-    fseek(fp, -1, SEEK_CUR);
-    return 0;
+
+    return "1:" + word;
 }
 
 bool isOperator(char p, FILE *fp)
 {
     char ch2 = fgetc(fp);
+    // cout << "p " << p << "  ch2 " << ch2 << "=" << endl;
     char op[3] = {p, ch2, '\0'};
     string t2(op);
     string t1(1, p);
@@ -158,10 +163,11 @@ bool isOperator(char p, FILE *fp)
     return false;
 }
 
-int get_operator(FILE *fp)
+string get_operator(FILE *fp)
 {
     char ch = fgetc(fp);
     char ch2 = fgetc(fp);
+    // cout << "ch:" << ch << "ch2:" << ch2 << "=" << endl;
     char op[3] = {ch, ch2, '\0'};
     string t1(1, ch);
     string t2(op);
@@ -172,22 +178,20 @@ int get_operator(FILE *fp)
         {
             if (!(coper[i].compare(t1)))
             {
-                cout << i + keyword.size() + 2 << ":" << t1 << endl;
                 fseek(fp, -1, SEEK_CUR);
-                return 0;
+                return to_string(i + keyword.size() + 2) + ":" + t1;
             }
         }
         else
         {
             if (!(coper[i].compare(t2)))
             {
-                cout << i + keyword.size() + 2 << ":" << t2 << endl;
-                return 0;
+                return to_string(i + keyword.size() + 2) + ":" + t2;
             }
         }
     }
     fseek(fp, -1, SEEK_CUR);
-    return 0;
+    return "unknowoperator";
 }
 
 bool isDelimiter(char p)
@@ -201,18 +205,19 @@ bool isDelimiter(char p)
     return false;
 }
 
-int get_delimiter(char p)
+string get_delimiter(char p)
 {
     int i;
+    string ret;
     for (i = 0; i < delimiter.size(); i++)
     {
         if (p == delimiter[i])
         {
-            cout << i + coper.size() + keyword.size() + 2 << ":" << p << endl;
-            return 0;
+            ret = to_string(i + coper.size() + keyword.size() + 2) + ":" + p;
+            break;
         }
     }
-    return 1;
+    return ret;
 }
 
 void delAnnotation(char *ch, FILE *fp)
@@ -250,60 +255,63 @@ void delAnnotation(char *ch, FILE *fp)
     fseek(fp, -1, SEEK_CUR);
 }
 
+int analyzer(FILE *fp)
+{
+    char ch;
+    do
+    {
+        ch = fgetc(fp);
+        // cout << "<  " << ch << "  >" << endl;
+        if (ch == EOF)
+            break;
+        delAnnotation(&ch, fp); //跳过注释
+        if (ch == '\n' || ch == ' ')
+        {
+            continue;
+        }
+
+        if (ch == '#') //预处理语句
+        {
+            cout << get_preprocessor_directives(fp) << endl;
+        }
+        else if (ch == '\'') //字符常量
+        {
+            cout << get_char_const(fp) << endl;
+        }
+        else if (ch == '"') //字符串常量
+        {
+            cout << get_string_const(fp) << endl;
+        }
+        else if (isDigit(ch)) //数值常量
+        {
+            cout << get_num_const(fp) << endl;
+        }
+        else if (isTag(ch, fp)) //标识符&关键字
+        {
+            cout << get_ID_word(fp) << endl;
+        }
+        else if (isDelimiter(ch)) //分隔符
+        {
+            cout << get_delimiter(ch) << endl;
+        }
+        else if (isOperator(ch, fp)) //运算符
+        {
+            cout << get_operator(fp) << endl;
+        }
+        else
+        {
+            cout << "Unknow char:" << ch << endl;
+        }
+    } while (ch != EOF);
+    return 0;
+}
 int main()
 {
     FILE *fp = fopen("in.txt", "r");
     // FILE *fp = fopen("Ex-01.cpp", "r");
     if (fp == NULL)
         printf("no found file!");
-
-    char ch;
-    do
-    {
-        ch = fgetc(fp);
-        if (ch == EOF)
-            break;
-        delAnnotation(&ch, fp); //跳过注释
-        // cout << "<   " << ch << "   >" << endl;
-        if (ch == '\n' || ch == ' ')
-        {
-            continue;
-        }
-        if (ch == '#') //预处理语句
-        {
-            get_preprocessor_directives(fp);
-        }
-        else if (ch == '\'') //字符常量
-        {
-            get_char_const(fp);
-        }
-        else if (ch == '"') //字符串常量
-        {
-            get_string_const(fp);
-        }
-        else if (isDigit(ch)) //数值常量
-        {
-            get_num_const(fp);
-        }
-        else if (isTag(ch, fp)) //标识符&关键字
-        {
-            // cout << "in:" << ch << endl;
-            get_ID_word(fp);
-        }
-        else if (isDelimiter(ch)) //分隔符
-        {
-            get_delimiter(ch);
-        }
-        else if (isOperator(ch, fp)) //运算符
-        {
-            get_operator(fp);
-        }
-        else
-        {
-            cout << "Unknow char:" << ch << endl;
-        }
-
-    } while (ch != EOF);
+    analyzer(fp);
     fclose(fp);
     // system("Pause");
     return 0;
